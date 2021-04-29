@@ -11,10 +11,18 @@ import (
 
 var ErrNotFound = errors.New("Not found")
 
-var ErrExists = errors.New("Resource exist")
-
 type Store interface {
 	User() User
+}
+
+type storeKey struct{}
+
+func Set(ctx context.Context, v Store) context.Context {
+	return context.WithValue(ctx, storeKey{}, v)
+}
+
+func Get(ctx context.Context) Store {
+	return ctx.Value(storeKey{}).(Store)
 }
 
 type User interface {

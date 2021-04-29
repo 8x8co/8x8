@@ -19,13 +19,22 @@ type badgerUSR struct {
 }
 
 func (b *badgerUSR) Create(ctx context.Context, usr *models.User) error {
+	old, err := b.Get(ctx, usr.Email)
 	return b.db.Update(func(txn *badger.Txn) error {
 		k := key(profile, usr.Email)
-		_, err := txn.Get(k)
 		if err == nil {
-			return ErrExists
+			if proto.Equal(usr, &models.User{
+				Name:    old.Name,
+				Email:   old.Email,
+				Picture: old.Picture,
+			}) {
+				return nil
+			}
+			usr.CreatedAt = old.CreatedAt
+			usr.UpdatedAt = ptypes.TimestampNow()
+		} else {
+			usr.CreatedAt = ptypes.TimestampNow()
 		}
-		usr.CreatedAt = ptypes.TimestampNow()
 		b, _ := proto.Marshal(usr)
 		return txn.Set(k, b)
 	})

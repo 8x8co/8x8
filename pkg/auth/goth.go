@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/gernest/8x8/pkg/models"
+	"github.com/gernest/8x8/pkg/storage"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
@@ -55,7 +58,17 @@ func a(ctx context.Context) oauth2.Config {
 	return defaultGoogleConfig.Config(callback)
 }
 
-var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32))
+var store = newCookieStore()
+
+// maxAge cookies expires every 24 hours
+const maxAge = 24 * time.Hour
+
+func newCookieStore() *sessions.CookieStore {
+	ss := sessions.NewCookieStore(securecookie.GenerateRandomKey(32))
+	ss.Options.MaxAge = int(maxAge.Seconds())
+	ss.MaxAge(ss.Options.MaxAge)
+	return ss
+}
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	o := a(r.Context())
@@ -72,6 +85,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Callback(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	session, _ := store.Get(r, sessionName)
 	var state string
 	if s := session.Values["state"]; s != nil {
@@ -81,16 +95,30 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
-	o := a(r.Context())
-	token, err := o.Exchange(r.Context(), r.FormValue("code"))
+	o := a(ctx)
+	token, err := o.Exchange(ctx, r.FormValue("code"))
 	if err != nil {
 		return
 	}
-	res, err := o.Client(r.Context(), token).Get(googleUserinfoEndpoint)
+	res, err := o.Client(ctx, token).Get(googleUserinfoEndpoint)
 	if err != nil {
 		return
 	}
 	defer res.Body.Close()
-	var usr GoogleUser
-	json.NewDecoder(res.Body).Decode(&usr)
+	var gousr GoogleUser
+	json.NewDecoder(res.Body).Decode(&gousr)
+	usr := &models.User{
+		Name:    gousr.Name,
+		Email:   gousr.Email,
+		Picture: gousr.Picture,
+	}
+	err = storage.Get(ctx).User().Create(r.Context(), usr)
+	if err != nil {
+		//
+	}
+	session.Values["email"] = gousr.Email
+	if err := session.Save(r, w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
