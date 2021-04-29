@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gernest/8x8/pkg/auth"
 	"github.com/gernest/8x8/templates"
 	"github.com/gorilla/mux"
 )
@@ -21,5 +22,7 @@ func main() {
 			log.Println(err)
 		}
 	})
+	mu.HandleFunc("/auth/google/login", auth.Login)
+	mu.HandleFunc("/auth/google/callback", auth.Callback)
 	http.ListenAndServe(":8080", mu)
 }
