@@ -1,0 +1,8 @@
+{{with .UserInfo}}
+<h1>Welcome {{.Sub}}!</h1>
+<br />
+{{if .Picture}}<img class="login-picture" src="{{.Picture}}?s=120">{{end}}
+{{if .Name}}<h3>{{.Name}}</h3>{{end}}
+{{end}}
+<br />
+<a class="btn btn-md btn-primary" href="/auth/logout">Logout</a>
