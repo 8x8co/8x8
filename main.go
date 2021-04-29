@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//go:generate protoc -I pkg/models/ --go_out=./pkg/models pkg/models/models.proto
 func main() {
 	tpl, err := template.ParseFS(templates.Files, "*/*.html")
 	if err != nil {
