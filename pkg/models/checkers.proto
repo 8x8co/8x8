@@ -16,7 +16,7 @@ message Piece {
   repeated Move possible_capture_moves = 6;
   repeated Move possible_positional_moves = 7;
   // This is a map of position to pience ID
-  map<string, int32> capture_move_enemies = 8;
+  map<int32, int32> capture_move_enemies = 8;
 }
 
 message Board {
