@@ -12,7 +12,6 @@ import (
 )
 
 const host = "8x8.co.tz"
-const host1 = "8x8.co"
 
 //go:generate protoc -I pkg/models/ --go_out=./pkg/models pkg/models/models.proto
 //go:generate protoc -I pkg/models/ --go_out=./pkg/models pkg/models/checkers.proto
@@ -34,5 +33,5 @@ func main() {
 	go http.ListenAndServe(":80", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		http.Redirect(rw, r, "https://"+host, http.StatusFound)
 	}))
-	log.Fatal(http.Serve(autocert.NewListener(host, host1), mu))
+	log.Fatal(http.Serve(autocert.NewListener(host), mu))
 }
