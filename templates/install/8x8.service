@@ -1,0 +1,13 @@
+[Unit]
+Description=8x8 draught/checkers realtime game
+Requires=network.target
+After=multi-user.target
+
+[Service]
+Type=simple
+Environment=8x8_DATA_DIR={{.Data}}
+ExecStart=/usr/local/bin/8x8
+WorkingDirectory={{.WorkingDirectory}}
+
+[Install]
+WantedBy=multi-user.target
