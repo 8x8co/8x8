@@ -195,7 +195,7 @@ func (b *Board) perform_capture_move(move models.Move) {
 	b.PreviousMoveWasCapture = true
 	piece := b.get_piece_by_position(int(move.From))
 	originally_was_king := piece.King
-	enemy_piece := b.PieceById[piece.capture_move_enemies[int(move.To)]]
+	enemy_piece := b.PieceById[piece.CaptureMoveEnemies[int(move.To)]]
 	enemy_piece.capture()
 	b.move_piece(move)
 	var further_capture_moves_for_piece []int
@@ -237,19 +237,19 @@ const (
 )
 
 type Piece struct {
-	Id                        int32
-	Player                    Player
-	Position                  int
-	King                      bool
-	Captured                  bool
-	possible_capture_moves    []models.Move
-	possible_positional_moves []models.Move
-	capture_move_enemies      map[int]int32
+	Id                      int32
+	Player                  Player
+	Position                int
+	King                    bool
+	Captured                bool
+	PossibleCaptureMoves    []models.Move
+	PossiblePositionalMoves []models.Move
+	CaptureMoveEnemies      map[int]int32
 }
 
 func (p *Piece) reset_for_new_board() {
-	p.possible_positional_moves = nil
-	p.possible_capture_moves = nil
+	p.PossiblePositionalMoves = nil
+	p.PossibleCaptureMoves = nil
 }
 
 func (p *Piece) capture() {
@@ -268,10 +268,10 @@ func (p *Piece) move(new_position int) {
 }
 
 func (p *Piece) get_possible_capture_moves(board *Board) []models.Move {
-	if p.possible_capture_moves == nil {
-		p.possible_capture_moves = p.build_possible_capture_moves(board)
+	if p.PossibleCaptureMoves == nil {
+		p.PossibleCaptureMoves = p.build_possible_capture_moves(board)
 	}
-	return p.possible_capture_moves
+	return p.PossibleCaptureMoves
 }
 
 func (p *Piece) build_possible_capture_moves(board *Board) []models.Move {
@@ -288,7 +288,7 @@ func (p *Piece) build_possible_capture_moves(board *Board) []models.Move {
 		position_behind_enemy := p.get_position_behind_enemy(enemy_piece)
 		if position_behind_enemy != 0 && board.position_is_open(position_behind_enemy) {
 			capture_move_positions = append(capture_move_positions, position_behind_enemy)
-			p.capture_move_enemies[position_behind_enemy] = enemy_piece.Id
+			p.CaptureMoveEnemies[position_behind_enemy] = enemy_piece.Id
 		}
 	}
 	return p.create_moves_from_new_positions(capture_move_positions)
@@ -332,10 +332,10 @@ func (p *Piece) is_on_enemy_home_row() bool {
 }
 
 func (p *Piece) get_possible_positional_moves(board *Board) (o []models.Move) {
-	if p.possible_positional_moves == nil {
-		p.possible_positional_moves = p.build_possible_positional_moves(board)
+	if p.PossiblePositionalMoves == nil {
+		p.PossiblePositionalMoves = p.build_possible_positional_moves(board)
 	}
-	return p.possible_positional_moves
+	return p.PossiblePositionalMoves
 }
 
 func (p *Piece) build_possible_positional_moves(board *Board) (o []models.Move) {
