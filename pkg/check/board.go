@@ -172,7 +172,7 @@ func (b *Board) perform_capture_move(move []int) {
 	b.previous_move_was_capture = true
 	piece := b.get_piece_by_position(move[0])
 	originally_was_king := piece.King
-	enemy_piece := piece.capture_move_enemies[move[1]]
+	enemy_piece := b.piece_by_id[piece.capture_move_enemies[move[1]]]
 	enemy_piece.capture()
 	b.move_piece(move)
 	var further_capture_moves_for_piece []int
@@ -221,7 +221,7 @@ type Piece struct {
 	Captured                  bool
 	possible_capture_moves    [][]int
 	possible_positional_moves [][]int
-	capture_move_enemies      map[int]*Piece
+	capture_move_enemies      map[int]int32
 }
 
 func (p *Piece) reset_for_new_board() {
@@ -265,7 +265,7 @@ func (p *Piece) build_possible_capture_moves(board *Board) [][]int {
 		position_behind_enemy := p.get_position_behind_enemy(enemy_piece)
 		if position_behind_enemy != 0 && board.position_is_open(position_behind_enemy) {
 			capture_move_positions = append(capture_move_positions, position_behind_enemy)
-			p.capture_move_enemies[position_behind_enemy] = enemy_piece
+			p.capture_move_enemies[position_behind_enemy] = enemy_piece.Id
 		}
 	}
 	return p.create_moves_from_new_positions(capture_move_positions)
