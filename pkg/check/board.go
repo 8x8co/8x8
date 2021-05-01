@@ -191,12 +191,9 @@ func (b *Board) perform_capture_move(move []int) {
 }
 
 func (b *Board) switch_turn() {
-	if b.playert_turn == 2 {
-		b.playert_turn = 1
-	} else {
-		b.playert_turn = 2
-	}
+	b.playert_turn = !b.playert_turn
 }
+
 func (b *Board) move_piece(move []int) {
 	b.get_piece_by_position(move[0]).move(move[1])
 	sort.Slice(b.pieces, func(i, j int) bool {
@@ -210,17 +207,16 @@ func get(ctx context.Context) *Board {
 	return ctx.Value(boardKey{}).(*Board)
 }
 
-type Player int
+type Player bool
 
 const (
-	White Player = iota + 1
-	Black
+	White Player = false
+	Black Player = true
 )
 
 type Piece struct {
 	Player                    Player
 	Position                  int
-	OtherPlayer               Player
 	King                      bool
 	Captured                  bool
 	possible_capture_moves    [][]int
@@ -258,7 +254,7 @@ func (p *Piece) get_possible_capture_moves(board *Board) [][]int {
 func (p *Piece) build_possible_capture_moves(board *Board) [][]int {
 	var adjacent_enemy_positions []int
 	for _, pos := range p.get_adjacent_positions() {
-		pns := board.get_positions_by_player(p.OtherPlayer)
+		pns := board.get_positions_by_player(!p.Player)
 		if in(pns, pos) {
 			adjacent_enemy_positions = append(adjacent_enemy_positions, pos)
 		}
@@ -306,7 +302,7 @@ func (p *Piece) get_row_from_position(pos int) int {
 
 func (p *Piece) is_on_enemy_home_row() bool {
 	pos := PositionCount
-	if p.OtherPlayer == White {
+	if !p.Player == White {
 		pos = 1
 	}
 	return p.get_row() == p.get_row_from_position(pos)
@@ -412,19 +408,11 @@ func NewBoard() Board {
 }
 
 func (b *Board) set_starting_pieces() {
-	var white []int
 	isWhite := func(po int) bool {
 		return po > 0 && po < StartingPieceCount+1
 	}
 	isBlack := func(po int) bool {
 		return po >= PositionCount-StartingPieceCount && po < PositionCount+1+1
-	}
-	for x := 1; x < StartingPieceCount+1; x++ {
-		white = append(white, x)
-	}
-	var black []int
-	for x := PositionCount - StartingPieceCount; x < PositionCount+1+1; x++ {
-		black = append(black, x)
 	}
 	var pieces []*Piece
 	for _, row := range b.position_layout {
@@ -435,12 +423,10 @@ func (b *Board) set_starting_pieces() {
 			} else if isBlack(position) {
 				player = Black
 			}
-			if player != 0 {
-				pieces = append(pieces, &Piece{
-					Player:   player,
-					Position: position,
-				})
-			}
+			pieces = append(pieces, &Piece{
+				Player:   player,
+				Position: position,
+			})
 		}
 	}
 	b.pieces = pieces
