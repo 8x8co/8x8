@@ -4,6 +4,8 @@ import (
 	"context"
 	"math"
 	"sort"
+
+	"github.com/gernest/8x8/pkg/models"
 )
 
 type Board struct {
@@ -124,7 +126,7 @@ func (b *Board) position_is_open(p int) bool {
 	return b.get_piece_by_position(p) == nil
 }
 
-func (b *Board) get_possible_moves() [][]int {
+func (b *Board) get_possible_moves() []models.Move {
 	capture_moves := b.get_possible_capture_moves()
 	if len(capture_moves) > 0 {
 		return capture_moves
@@ -136,23 +138,23 @@ func (b *Board) deepCopy() *Board {
 	return b
 }
 
-func (b *Board) get_possible_capture_moves() [][]int {
-	var moves [][]int
+func (b *Board) get_possible_capture_moves() []models.Move {
+	var moves []models.Move
 	for _, piece := range b.get_pieces_in_play() {
 		moves = append(moves, piece.get_possible_capture_moves(b)...)
 	}
 	return moves
 }
 
-func (b *Board) get_possible_positional_moves() [][]int {
-	var moves [][]int
+func (b *Board) get_possible_positional_moves() []models.Move {
+	var moves []models.Move
 	for _, piece := range b.get_pieces_in_play() {
 		moves = append(moves, piece.get_possible_positional_moves(b)...)
 	}
 	return moves
 }
 
-func (b *Board) perform_positional_move(move []int) {
+func (b *Board) perform_positional_move(move models.Move) {
 	b.previous_move_was_capture = false
 	b.move_piece(move)
 	b.switch_turn()
@@ -168,21 +170,21 @@ func (b *Board) is_valid_row_and_column(row, column int) bool {
 	return true
 }
 
-func (b *Board) perform_capture_move(move []int) {
+func (b *Board) perform_capture_move(move models.Move) {
 	b.previous_move_was_capture = true
-	piece := b.get_piece_by_position(move[0])
+	piece := b.get_piece_by_position(int(move.From))
 	originally_was_king := piece.King
-	enemy_piece := b.piece_by_id[piece.capture_move_enemies[move[1]]]
+	enemy_piece := b.piece_by_id[piece.capture_move_enemies[int(move.To)]]
 	enemy_piece.capture()
 	b.move_piece(move)
 	var further_capture_moves_for_piece []int
 	for _, capture_move := range b.get_possible_capture_moves() {
-		if move[1] == capture_move[0] {
-			further_capture_moves_for_piece = append(further_capture_moves_for_piece, capture_move...)
+		if move.To == capture_move.From {
+			further_capture_moves_for_piece = append(further_capture_moves_for_piece, int(capture_move.From), int(capture_move.To))
 		}
 	}
 	if further_capture_moves_for_piece != nil && originally_was_king == piece.King {
-		b.piece_requiring_further_capture_moves = b.get_piece_by_position(move[1])
+		b.piece_requiring_further_capture_moves = b.get_piece_by_position(int(move.To))
 	} else {
 		b.piece_requiring_further_capture_moves = nil
 		b.switch_turn()
@@ -193,8 +195,8 @@ func (b *Board) switch_turn() {
 	b.playert_turn = !b.playert_turn
 }
 
-func (b *Board) move_piece(move []int) {
-	b.get_piece_by_position(move[0]).move(move[1])
+func (b *Board) move_piece(move models.Move) {
+	b.get_piece_by_position(int(move.From)).move(int(move.To))
 	sort.Slice(b.pieces, func(i, j int) bool {
 		return b.pieces[i].Position < b.pieces[j].Position
 	})
@@ -219,8 +221,8 @@ type Piece struct {
 	Position                  int
 	King                      bool
 	Captured                  bool
-	possible_capture_moves    [][]int
-	possible_positional_moves [][]int
+	possible_capture_moves    []models.Move
+	possible_positional_moves []models.Move
 	capture_move_enemies      map[int]int32
 }
 
@@ -244,14 +246,14 @@ func (p *Piece) move(new_position int) {
 	p.King = p.King || p.is_on_enemy_home_row()
 }
 
-func (p *Piece) get_possible_capture_moves(board *Board) [][]int {
+func (p *Piece) get_possible_capture_moves(board *Board) []models.Move {
 	if p.possible_capture_moves == nil {
 		p.possible_capture_moves = p.build_possible_capture_moves(board)
 	}
 	return p.possible_capture_moves
 }
 
-func (p *Piece) build_possible_capture_moves(board *Board) [][]int {
+func (p *Piece) build_possible_capture_moves(board *Board) []models.Move {
 	var adjacent_enemy_positions []int
 	for _, pos := range p.get_adjacent_positions() {
 		pns := board.get_positions_by_player(!p.Player)
@@ -308,14 +310,14 @@ func (p *Piece) is_on_enemy_home_row() bool {
 	return p.get_row() == p.get_row_from_position(pos)
 }
 
-func (p *Piece) get_possible_positional_moves(board *Board) (o [][]int) {
+func (p *Piece) get_possible_positional_moves(board *Board) (o []models.Move) {
 	if p.possible_positional_moves == nil {
 		p.possible_positional_moves = p.build_possible_positional_moves(board)
 	}
 	return p.possible_positional_moves
 }
 
-func (p *Piece) build_possible_positional_moves(board *Board) (o [][]int) {
+func (p *Piece) build_possible_positional_moves(board *Board) (o []models.Move) {
 	var new_positions []int
 	for _, pos := range p.get_adjacent_positions() {
 		if board.position_is_open(pos) {
@@ -325,10 +327,11 @@ func (p *Piece) build_possible_positional_moves(board *Board) (o [][]int) {
 	return p.create_moves_from_new_positions(new_positions)
 }
 
-func (p *Piece) create_moves_from_new_positions(new_positions []int) (o [][]int) {
+func (p *Piece) create_moves_from_new_positions(new_positions []int) (o []models.Move) {
 	for _, new_position := range new_positions {
-		o = append(o, []int{
-			p.Position, new_position,
+		o = append(o, models.Move{
+			From: int32(p.Position),
+			To:   int32(new_position),
 		})
 	}
 	return
