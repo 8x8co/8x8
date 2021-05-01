@@ -404,6 +404,7 @@ func InitialLayout() Layout {
 
 func NewBoard() Board {
 	b := Board{}
+	b.set_starting_pieces()
 	return b
 }
 
