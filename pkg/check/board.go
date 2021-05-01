@@ -16,10 +16,25 @@ type Board struct {
 	uncaptured_pieces                     []*Piece
 	open_positions                        []int
 	filled_positions                      []int
-	player_positions                      map[Player][]int
-	player_pieces                         map[Player][]*Piece
+	white_positions                       []int
+	black_positions                       []int
+	white_pieces                          []*Piece
+	black_pieces                          []*Piece
 	position_pieces                       map[int]*Piece
 	piece_by_id                           map[int32]*Piece
+}
+
+func (b *Board) player_pieces(player Player) []*Piece {
+	if player {
+		return b.black_pieces
+	}
+	return b.white_pieces
+}
+func (b *Board) player_positions(player Player) []int {
+	if player {
+		return b.black_positions
+	}
+	return b.white_positions
 }
 
 func (b *Board) resetPieces() {
@@ -74,25 +89,31 @@ func (b *Board) build_open_positions() {
 }
 
 func (b *Board) build_player_positions() {
-	m := make(map[Player][]int)
+	var black, white []int
 	for _, v := range b.uncaptured_pieces {
 		switch v.Player {
-		case White, Black:
-			m[v.Player] = append(m[v.Player], v.Position)
+		case White:
+			white = append(white, v.Position)
+		case Black:
+			black = append(black, v.Position)
 		}
 	}
-	b.player_positions = m
+	b.white_positions = white
+	b.black_positions = black
 }
 
 func (b *Board) build_player_pieces() {
-	m := make(map[Player][]*Piece)
+	var white, black []*Piece
 	for _, v := range b.uncaptured_pieces {
 		switch v.Player {
-		case White, Black:
-			m[v.Player] = append(m[v.Player], v)
+		case White:
+			white = append(white, v)
+		case Black:
+			black = append(black, v)
 		}
 	}
-	b.player_pieces = m
+	b.white_pieces = white
+	b.black_pieces = black
 }
 
 func (b *Board) build_position_pieces() {
@@ -104,16 +125,16 @@ func (b *Board) build_position_pieces() {
 }
 
 func (b *Board) get_pieces_by_player(p Player) []*Piece {
-	return b.player_pieces[p]
+	return b.player_pieces(p)
 }
 
 func (b *Board) get_positions_by_player(p Player) []int {
-	return b.player_positions[p]
+	return b.player_positions(p)
 }
 
 func (b *Board) get_pieces_in_play() []*Piece {
 	if b.piece_requiring_further_capture_moves == nil {
-		return b.player_pieces[b.playert_turn]
+		return b.player_pieces(b.playert_turn)
 	}
 	return []*Piece{b.piece_requiring_further_capture_moves}
 }

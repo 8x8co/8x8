@@ -18,3 +18,22 @@ message Piece {
   // This is a map of position to pience ID
   map<string, int32> capture_move_enemies = 8;
 }
+
+message Board {
+  string id = 1;
+  repeated Piece pieces = 2;
+  bool previous_move_was_capture = 3;
+  bool playert_turn = 4;
+  Piece piece_requiring_further_capture_moves = 5;
+  repeated Piece uncaptured_pieces = 6;
+  repeated int32 open_positions = 7;
+  repeated int32 filled_positions = 8;
+
+  repeated int32 white_positions = 9;
+  repeated int32 black_positions = 10;
+
+  repeated Piece white_pieces = 11;
+  repeated Piece black_pieces = 12;
+  map<int32, Piece> position_pieces = 13;
+  map<int32, Piece> piece_by_id = 14;
+}
