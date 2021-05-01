@@ -7,20 +7,16 @@ import (
 )
 
 type Board struct {
-	PieceRequireFutherCaptureMove         bool
-	PreviousMoveWasCaptrue                bool
-	position_layout                       Layout
 	pieces                                []*Piece
 	previous_move_was_capture             bool
 	playert_turn                          Player
 	piece_requiring_further_capture_moves *Piece
-
-	uncaptured_pieces []*Piece
-	open_positions    []int
-	filled_positions  []int
-	player_positions  map[Player][]int
-	player_pieces     map[Player][]*Piece
-	position_pieces   map[int]*Piece
+	uncaptured_pieces                     []*Piece
+	open_positions                        []int
+	filled_positions                      []int
+	player_positions                      map[Player][]int
+	player_pieces                         map[Player][]*Piece
+	position_pieces                       map[int]*Piece
 }
 
 func (b *Board) resetPieces() {
@@ -416,7 +412,7 @@ func (b *Board) set_starting_pieces() {
 		return po >= PositionCount-StartingPieceCount && po < PositionCount+1+1
 	}
 	var pieces []*Piece
-	for _, row := range b.position_layout {
+	for _, row := range layout {
 		for _, position := range row {
 			var player Player
 			if isWhite(position) {

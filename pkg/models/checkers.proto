@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package models;
+
+message Move {
+  int32 from = 1;
+  int32 to = 2;
+}
+
+message Piece {
+  int32 id = 1;
+  bool player = 2;
+  int32 position = 3;
+  bool king = 4;
+  bool captured = 5;
+  repeated Move possible_capture_moves = 6;
+  repeated Move possible_positional_moves = 7;
+  // This is a map of position to pience ID
+  map<string, int32> capture_move_enemies = 8;
+}
