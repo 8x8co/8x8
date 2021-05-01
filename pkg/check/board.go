@@ -17,11 +17,14 @@ type Board struct {
 	player_positions                      map[Player][]int
 	player_pieces                         map[Player][]*Piece
 	position_pieces                       map[int]*Piece
+	piece_by_id                           map[int32]*Piece
 }
 
 func (b *Board) resetPieces() {
+	b.piece_by_id = make(map[int32]*Piece)
 	for i := 0; i < len(b.pieces); i++ {
 		b.pieces[i].reset_for_new_board()
+		b.piece_by_id[b.pieces[i].Id] = b.pieces[i]
 	}
 	b.buildSearch()
 }
@@ -211,6 +214,7 @@ const (
 )
 
 type Piece struct {
+	Id                        int32
 	Player                    Player
 	Position                  int
 	King                      bool
@@ -412,8 +416,10 @@ func (b *Board) set_starting_pieces() {
 		return po >= PositionCount-StartingPieceCount && po < PositionCount+1+1
 	}
 	var pieces []*Piece
+	var id int32
 	for _, row := range layout {
 		for _, position := range row {
+			id++
 			var player Player
 			if isWhite(position) {
 				player = White
@@ -421,6 +427,7 @@ func (b *Board) set_starting_pieces() {
 				player = Black
 			}
 			pieces = append(pieces, &Piece{
+				Id:       id,
 				Player:   player,
 				Position: position,
 			})
