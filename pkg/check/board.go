@@ -9,51 +9,51 @@ import (
 )
 
 type Board struct {
-	pieces                                []*Piece
-	previous_move_was_capture             bool
-	playert_turn                          Player
-	piece_requiring_further_capture_moves *Piece
-	uncaptured_pieces                     []*Piece
-	open_positions                        []int
-	filled_positions                      []int
-	white_positions                       []int
-	black_positions                       []int
-	white_pieces                          []*Piece
-	black_pieces                          []*Piece
-	position_pieces                       map[int]*Piece
-	piece_by_id                           map[int32]*Piece
+	Pieces                            []*Piece
+	PreviousMoveWasCapture            bool
+	PlayertTurn                       Player
+	PieceRequiringFurtherCaptureMoves *Piece
+	UncapturedPieces                  []*Piece
+	OpenPositions                     []int
+	FilledPositions                   []int
+	WhitePositions                    []int
+	BlackPositions                    []int
+	WhitePieces                       []*Piece
+	BlackPieces                       []*Piece
+	PositionPieces                    map[int]*Piece
+	PieceById                         map[int32]*Piece
 }
 
 func (b *Board) player_pieces(player Player) []*Piece {
 	if player {
-		return b.black_pieces
+		return b.BlackPieces
 	}
-	return b.white_pieces
+	return b.WhitePieces
 }
 func (b *Board) player_positions(player Player) []int {
 	if player {
-		return b.black_positions
+		return b.BlackPositions
 	}
-	return b.white_positions
+	return b.WhitePositions
 }
 
 func (b *Board) resetPieces() {
-	b.piece_by_id = make(map[int32]*Piece)
-	for i := 0; i < len(b.pieces); i++ {
-		b.pieces[i].reset_for_new_board()
-		b.piece_by_id[b.pieces[i].Id] = b.pieces[i]
+	b.PieceById = make(map[int32]*Piece)
+	for i := 0; i < len(b.Pieces); i++ {
+		b.Pieces[i].reset_for_new_board()
+		b.PieceById[b.Pieces[i].Id] = b.Pieces[i]
 	}
 	b.buildSearch()
 }
 
 func (b *Board) buildSearch() {
 	var ls []*Piece
-	for _, v := range b.pieces {
+	for _, v := range b.Pieces {
 		if !v.Captured {
 			ls = append(ls, v)
 		}
 	}
-	b.uncaptured_pieces = ls
+	b.UncapturedPieces = ls
 	b.build_filled_positions()
 	b.build_open_positions()
 	b.build_player_positions()
@@ -63,10 +63,10 @@ func (b *Board) buildSearch() {
 
 func (b *Board) build_filled_positions() {
 	var ls []int
-	for _, v := range b.uncaptured_pieces {
+	for _, v := range b.UncapturedPieces {
 		ls = append(ls, v.Position)
 	}
-	b.filled_positions = ls
+	b.FilledPositions = ls
 }
 
 func in(ls []int, v int) bool {
@@ -81,16 +81,16 @@ func in(ls []int, v int) bool {
 func (b *Board) build_open_positions() {
 	var ls []int
 	for i := 1; i < PositionCount; i++ {
-		if !in(b.filled_positions, i) {
+		if !in(b.FilledPositions, i) {
 			ls = append(ls, i)
 		}
 	}
-	b.open_positions = ls
+	b.OpenPositions = ls
 }
 
 func (b *Board) build_player_positions() {
 	var black, white []int
-	for _, v := range b.uncaptured_pieces {
+	for _, v := range b.UncapturedPieces {
 		switch v.Player {
 		case White:
 			white = append(white, v.Position)
@@ -98,13 +98,13 @@ func (b *Board) build_player_positions() {
 			black = append(black, v.Position)
 		}
 	}
-	b.white_positions = white
-	b.black_positions = black
+	b.WhitePositions = white
+	b.BlackPositions = black
 }
 
 func (b *Board) build_player_pieces() {
 	var white, black []*Piece
-	for _, v := range b.uncaptured_pieces {
+	for _, v := range b.UncapturedPieces {
 		switch v.Player {
 		case White:
 			white = append(white, v)
@@ -112,16 +112,16 @@ func (b *Board) build_player_pieces() {
 			black = append(black, v)
 		}
 	}
-	b.white_pieces = white
-	b.black_pieces = black
+	b.WhitePieces = white
+	b.BlackPieces = black
 }
 
 func (b *Board) build_position_pieces() {
 	m := make(map[int]*Piece)
-	for _, v := range b.uncaptured_pieces {
+	for _, v := range b.UncapturedPieces {
 		m[v.Position] = v
 	}
-	b.position_pieces = m
+	b.PositionPieces = m
 }
 
 func (b *Board) get_pieces_by_player(p Player) []*Piece {
@@ -133,14 +133,14 @@ func (b *Board) get_positions_by_player(p Player) []int {
 }
 
 func (b *Board) get_pieces_in_play() []*Piece {
-	if b.piece_requiring_further_capture_moves == nil {
-		return b.player_pieces(b.playert_turn)
+	if b.PieceRequiringFurtherCaptureMoves == nil {
+		return b.player_pieces(b.PlayertTurn)
 	}
-	return []*Piece{b.piece_requiring_further_capture_moves}
+	return []*Piece{b.PieceRequiringFurtherCaptureMoves}
 }
 
 func (b *Board) get_piece_by_position(p int) *Piece {
-	return b.position_pieces[p]
+	return b.PositionPieces[p]
 }
 
 func (b *Board) position_is_open(p int) bool {
@@ -176,7 +176,7 @@ func (b *Board) get_possible_positional_moves() []models.Move {
 }
 
 func (b *Board) perform_positional_move(move models.Move) {
-	b.previous_move_was_capture = false
+	b.PreviousMoveWasCapture = false
 	b.move_piece(move)
 	b.switch_turn()
 }
@@ -192,10 +192,10 @@ func (b *Board) is_valid_row_and_column(row, column int) bool {
 }
 
 func (b *Board) perform_capture_move(move models.Move) {
-	b.previous_move_was_capture = true
+	b.PreviousMoveWasCapture = true
 	piece := b.get_piece_by_position(int(move.From))
 	originally_was_king := piece.King
-	enemy_piece := b.piece_by_id[piece.capture_move_enemies[int(move.To)]]
+	enemy_piece := b.PieceById[piece.capture_move_enemies[int(move.To)]]
 	enemy_piece.capture()
 	b.move_piece(move)
 	var further_capture_moves_for_piece []int
@@ -205,21 +205,21 @@ func (b *Board) perform_capture_move(move models.Move) {
 		}
 	}
 	if further_capture_moves_for_piece != nil && originally_was_king == piece.King {
-		b.piece_requiring_further_capture_moves = b.get_piece_by_position(int(move.To))
+		b.PieceRequiringFurtherCaptureMoves = b.get_piece_by_position(int(move.To))
 	} else {
-		b.piece_requiring_further_capture_moves = nil
+		b.PieceRequiringFurtherCaptureMoves = nil
 		b.switch_turn()
 	}
 }
 
 func (b *Board) switch_turn() {
-	b.playert_turn = !b.playert_turn
+	b.PlayertTurn = !b.PlayertTurn
 }
 
 func (b *Board) move_piece(move models.Move) {
 	b.get_piece_by_position(int(move.From)).move(int(move.To))
-	sort.Slice(b.pieces, func(i, j int) bool {
-		return b.pieces[i].Position < b.pieces[j].Position
+	sort.Slice(b.Pieces, func(i, j int) bool {
+		return b.Pieces[i].Position < b.Pieces[j].Position
 	})
 }
 
@@ -457,6 +457,6 @@ func (b *Board) set_starting_pieces() {
 			})
 		}
 	}
-	b.pieces = pieces
+	b.Pieces = pieces
 	b.resetPieces()
 }
