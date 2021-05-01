@@ -23,6 +23,13 @@ type Board struct {
 	position_pieces   map[int]*Piece
 }
 
+func (b *Board) resetPieces() {
+	for i := 0; i < len(b.pieces); i++ {
+		b.pieces[i].reset_for_new_board()
+	}
+	b.buildSearch()
+}
+
 func (b *Board) buildSearch() {
 	var ls []*Piece
 	for _, v := range b.pieces {
@@ -437,4 +444,5 @@ func (b *Board) set_starting_pieces() {
 		}
 	}
 	b.pieces = pieces
+	b.resetPieces()
 }
