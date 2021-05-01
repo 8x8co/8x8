@@ -48,7 +48,7 @@ func (b *badgerUSR) Get(ctx context.Context, email string) (m *models.User, err 
 			if errors.Is(err, badger.ErrKeyNotFound) {
 				return ErrNotFound
 			}
-			return ErrExists
+			return err
 		}
 		return it.Value(func(val []byte) error {
 			m = &models.User{}
