@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/gernest/8x8/pkg/auth"
 	"github.com/gernest/8x8/pkg/xl"
@@ -105,24 +104,7 @@ func run(_ *cli.Context) error {
 	return ctx.Err()
 }
 
-func setup() error {
-	o := filepath.Dir(xl.LogPath)
-	_, err := os.Stat(o)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-		if err := os.MkdirAll(o, 0755); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func install(ctx *cli.Context) error {
-	if err := setup(); err != nil {
-		return err
-	}
 	tpl, err := template.ParseFS(templates.Installation, "*/*")
 	if err != nil {
 		return err

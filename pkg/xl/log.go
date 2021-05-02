@@ -4,7 +4,7 @@ import "go.uber.org/zap"
 
 var Logger *zap.Logger
 
-const LogPath = "/var/log/8x8/out.log"
+const LogPath = "/var/log/8x8.log"
 
 func init() {
 	var err error
