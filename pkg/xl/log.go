@@ -4,9 +4,13 @@ import "go.uber.org/zap"
 
 var Logger *zap.Logger
 
+const LogPath = "/var/log/8x8/out.log"
+
 func init() {
 	var err error
 	c := zap.NewProductionConfig()
+	c.OutputPaths = []string{LogPath}
+	c.ErrorOutputPaths = []string{LogPath}
 	c.DisableStacktrace = true
 	c.Level.SetLevel(zap.DebugLevel)
 	Logger, err = c.Build(
