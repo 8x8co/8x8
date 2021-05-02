@@ -6,17 +6,18 @@ import (
 	"errors"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
+	"github.com/caddyserver/certmagic"
 	"github.com/gernest/8x8/pkg/auth"
+	"github.com/gernest/8x8/pkg/mw"
 	"github.com/gernest/8x8/pkg/xl"
 	"github.com/gernest/8x8/templates"
 	"github.com/gorilla/mux"
 	"github.com/urfave/cli"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 const host = "8x8.co.tz"
@@ -62,39 +63,23 @@ func run(_ *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	m := mw.New()
 	mu := mux.NewRouter()
 	mu.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
 		err := tpl.ExecuteTemplate(rw, "index.html", map[string]interface{}{})
 		if err != nil {
-			log.Println(err)
+			xl.Error(err, "failed executing index template")
 		}
 	})
 	mu.HandleFunc("/auth/google/login", auth.Login)
 	mu.HandleFunc("/auth/google/callback", auth.Callback)
-	// redirect all http traffick to https
-	svr := &http.Server{
-		Addr: ":80",
-		Handler: http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			http.Redirect(rw, r, "https://"+host, http.StatusFound)
-		}),
-	}
-	defer svr.Shutdown(context.Background())
 
 	go func() {
-		xl.Info("starting http service", zap.String("addr", svr.Addr))
-		err := svr.ListenAndServe()
-		if err != nil {
-			xl.Error(err, "exit http server")
-		}
-		cancel()
-	}()
-	stls := &http.Server{
-		Handler: mu,
-	}
-	go func() {
-		ls := autocert.NewListener(host)
-		xl.Info("starting http service", zap.String("addr", ls.Addr().String()))
-		err := stls.Serve(ls)
+		xl.Info("starting service")
+		certmagic.Default.Storage = &certmagic.FileStorage{Path: "/data/8x8/certs"}
+		certmagic.Default.Logger = xl.Logger
+		certmagic.DefaultACME.Email = "geofreyernest@live.com"
+		err := certmagic.HTTPS([]string{host}, m.Then(mu))
 		if err != nil {
 			xl.Error(err, "exit https server")
 		}
@@ -104,6 +89,17 @@ func run(_ *cli.Context) error {
 	return ctx.Err()
 }
 
+func ensure(dir string) error {
+	_, err := os.Stat(dir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		return os.MkdirAll(dir, 0755)
+	}
+	return nil
+}
+
 func install(ctx *cli.Context) error {
 	tpl, err := template.ParseFS(templates.Installation, "*/*")
 	if err != nil {
@@ -111,26 +107,18 @@ func install(ctx *cli.Context) error {
 	}
 	w := ctx.String("workdir")
 	xl.Info("setting working directory", zap.String("w", w))
-	_, err = os.Stat(w)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-		if err := os.MkdirAll(w, 0755); err != nil {
-			xl.Error(err, "failed to create working direcory")
-			return context.Canceled
-		}
+	if err := ensure(w); err != nil {
+		return err
 	}
 	d := ctx.String("data")
 	xl.Info("setting data directory", zap.String("d", d))
-	_, err = os.Stat(d)
-	if err != nil {
-		if !os.IsNotExist(err) {
+	if err := ensure(w); err != nil {
+		return err
+	}
+	dataDirs := []string{"db", "certs"}
+	for _, v := range dataDirs {
+		if err := ensure(filepath.Join(d, v)); err != nil {
 			return err
-		}
-		if err := os.MkdirAll(w, 0755); err != nil {
-			xl.Error(err, "failed to create data direcory")
-			return context.Canceled
 		}
 	}
 	xl.Info("Setting up systemd")
