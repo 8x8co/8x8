@@ -22,6 +22,13 @@ import (
 
 const host = "8x8.co.tz"
 
+const (
+	WorkingDirectory = "/opt/8x8"
+	DataDirectory    = "/data/8x8"
+	SystemDUnitFile  = "/etc/systemd/system/8x8.service"
+	SystemDEnvFile   = "/etc/8x8/8x8.env"
+)
+
 //go:generate protoc -I pkg/models/ --go_out=./pkg/models pkg/models/models.proto
 //go:generate protoc -I pkg/models/ --go_out=./pkg/models pkg/models/checkers.proto
 
@@ -30,20 +37,8 @@ func main() {
 	a.Name = "8x8 realtime checkers game"
 	a.Commands = cli.Commands{
 		{
-			Name:  "install",
-			Usage: "installs systemd unit files and sets up 8x8",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "workdir,w",
-					Usage: "working directory",
-					Value: "/opt/8x8",
-				},
-				cli.StringFlag{
-					Name:  "data,d",
-					Usage: "database directory",
-					Value: "/data/8x8",
-				},
-			},
+			Name:   "install",
+			Usage:  "installs systemd unit files and sets up 8x8",
 			Action: install,
 		},
 	}
@@ -105,36 +100,56 @@ func install(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	w := ctx.String("workdir")
-	xl.Info("setting working directory", zap.String("w", w))
-	if err := ensure(w); err != nil {
+	xl.Info("setting working directory", zap.String("w", WorkingDirectory))
+	if err := ensure(WorkingDirectory); err != nil {
 		return err
 	}
-	d := ctx.String("data")
-	xl.Info("setting data directory", zap.String("d", d))
-	if err := ensure(w); err != nil {
+	xl.Info("setting data directory", zap.String("d", DataDirectory))
+	if err := ensure(DataDirectory); err != nil {
 		return err
 	}
 	dataDirs := []string{"db", "certs"}
 	for _, v := range dataDirs {
-		if err := ensure(filepath.Join(d, v)); err != nil {
+		if err := ensure(filepath.Join(DataDirectory, v)); err != nil {
 			return err
 		}
 	}
 	xl.Info("Setting up systemd")
 	var buf bytes.Buffer
 	err = tpl.ExecuteTemplate(&buf, "8x8.service", map[string]interface{}{
-		"WorkingDirectory": w,
-		"Data":             d,
+		"WorkingDirectory": WorkingDirectory,
+		"Data":             DataDirectory,
 	})
 	if err != nil {
 		return err
 	}
-	path := "/etc/systemd/system/8x8.service"
-	xl.Info("writing systemd service file", zap.String("path", path))
-	err = ioutil.WriteFile(path, buf.Bytes(), 0600)
+	xl.Info("writing systemd service file", zap.String("path", SystemDUnitFile))
+	err = ioutil.WriteFile(SystemDUnitFile, buf.Bytes(), 0600)
 	if err != nil {
 		return err
+	}
+
+	env := filepath.Dir(SystemDEnvFile)
+	xl.Info("creating env variable directory", zap.String("path", env))
+	if err := ensure(env); err != nil {
+		return err
+	}
+	_, err = os.Stat(SystemDEnvFile)
+	if os.IsNotExist(err) {
+		buf.Reset()
+		err = tpl.ExecuteTemplate(&buf, "8x8.env", map[string]interface{}{
+			"GOOGLE_CLIENT_ID":     os.Getenv("GOOGLE_CLIENT_ID"),
+			"GOOGLE_CLIENT_SECRET": os.Getenv("GOOGLE_CLIENT_SECRET"),
+		})
+		if err != nil {
+			return err
+		}
+
+		xl.Info("writing systemd service env file", zap.String("path", SystemDEnvFile))
+		err = ioutil.WriteFile(SystemDEnvFile, buf.Bytes(), 0600)
+		if err != nil {
+			return err
+		}
 	}
 	xl.Info("systemctl  enable 8x8.service # to start at boot")
 	xl.Info("systemctl  start 8x8.service # to star the service")
