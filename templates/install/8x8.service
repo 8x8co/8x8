@@ -5,10 +5,9 @@ After=multi-user.target
 
 [Service]
 Type=simple
-Environment=8x8_DATA_DIR={{.Data}}
 ExecStart=/usr/local/bin/8x8
-WorkingDirectory={{.WorkingDirectory}}
 EnvironmentFile=/etc/8x8/8b8.env
+PassEnvironment=GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET
 
 [Install]
 WantedBy=multi-user.target
