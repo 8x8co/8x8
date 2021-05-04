@@ -29,6 +29,8 @@ const (
 	SystemDEnvFile   = "/etc/8x8/8x8.env"
 )
 
+var DefaultEmail = os.Getenv("8x8_DEFAULT_EMAIL")
+
 //go:generate protoc -I pkg/models/ --go_out=./pkg/models pkg/models/models.proto
 //go:generate protoc -I pkg/models/ --go_out=./pkg/models pkg/models/checkers.proto
 
@@ -73,7 +75,7 @@ func run(_ *cli.Context) error {
 		xl.Info("starting service")
 		certmagic.Default.Storage = &certmagic.FileStorage{Path: "/data/8x8/certs"}
 		certmagic.Default.Logger = xl.Logger
-		certmagic.DefaultACME.Email = "geofreyernest@live.com"
+		certmagic.DefaultACME.Email = DefaultEmail
 		err := certmagic.HTTPS([]string{host}, m.Then(mu))
 		if err != nil {
 			xl.Error(err, "exit https server")
