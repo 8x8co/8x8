@@ -38,7 +38,7 @@ func (g Google) Config(redirect string) oauth2.Config {
 	}
 }
 
-var defaultGoogleConfig = Google{
+var DefaultGoogleConfig = Google{
 	ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 	ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 	Scopes: []string{
@@ -55,7 +55,7 @@ type GoogleUser struct {
 }
 
 func a(ctx context.Context) oauth2.Config {
-	return defaultGoogleConfig.Config(callback)
+	return DefaultGoogleConfig.Config(callback)
 }
 
 var store = newCookieStore()

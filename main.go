@@ -26,7 +26,6 @@ const (
 	WorkingDirectory = "/opt/8x8"
 	DataDirectory    = "/data/8x8"
 	SystemDUnitFile  = "/etc/systemd/system/8x8.service"
-	SystemDEnvFile   = "/etc/8x8/8x8.env"
 )
 
 var DefaultEmail = os.Getenv("8x8_DEFAULT_EMAIL")
@@ -119,8 +118,10 @@ func install(ctx *cli.Context) error {
 	xl.Info("Setting up systemd")
 	var buf bytes.Buffer
 	err = tpl.ExecuteTemplate(&buf, "8x8.service", map[string]interface{}{
-		"WorkingDirectory": WorkingDirectory,
-		"Data":             DataDirectory,
+		"WorkingDirectory":     WorkingDirectory,
+		"Data":                 DataDirectory,
+		"GOOGLE_CLIENT_ID":     os.Getenv("GOOGLE_CLIENT_ID"),
+		"GOOGLE_CLIENT_SECRET": os.Getenv("GOOGLE_CLIENT_SECRET"),
 	})
 	if err != nil {
 		return err
@@ -129,29 +130,6 @@ func install(ctx *cli.Context) error {
 	err = ioutil.WriteFile(SystemDUnitFile, buf.Bytes(), 0600)
 	if err != nil {
 		return err
-	}
-
-	env := filepath.Dir(SystemDEnvFile)
-	xl.Info("creating env variable directory", zap.String("path", env))
-	if err := ensure(env); err != nil {
-		return err
-	}
-	_, err = os.Stat(SystemDEnvFile)
-	if os.IsNotExist(err) {
-		buf.Reset()
-		err = tpl.ExecuteTemplate(&buf, "8x8.env", map[string]interface{}{
-			"GOOGLE_CLIENT_ID":     os.Getenv("GOOGLE_CLIENT_ID"),
-			"GOOGLE_CLIENT_SECRET": os.Getenv("GOOGLE_CLIENT_SECRET"),
-		})
-		if err != nil {
-			return err
-		}
-
-		xl.Info("writing systemd service env file", zap.String("path", SystemDEnvFile))
-		err = ioutil.WriteFile(SystemDEnvFile, buf.Bytes(), 0600)
-		if err != nil {
-			return err
-		}
 	}
 	xl.Info("systemctl  enable 8x8.service # to start at boot")
 	xl.Info("systemctl  start 8x8.service # to star the service")
